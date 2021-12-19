@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <style>
+        #board {
+            border: 1px solid #222; 
+            width: 500px; 
+            height:500px;
+        }
+        .pixel {
+            width: 10px;
+            height: 10px;
+            box-sizing: border-box;
+        }
+        .worm {
+            background-color: #000;
+        }
+        .head {
+            background-color: rgb(255, 0, 0);
+        }
+        #board, .row {
+            display: flex;
+            flex-flow: row wrap;     
+        }
+    </style>
+</head>
+<body>
+
+    <div id="board"></div>
+
+    <script>
+        var board = $(".board");
+        var boardSize = 50;
+
+        //지렁이
+        var worm = {
+            position: [[25, 10],[25, 9], [25, 8], [25, 7]], 
+            size: 4,
+            direction: "right"
+        }
+
+        //랜덤 위치에 생기는 숫자
+        var food = {
+            position: [], 
+            size: 0
+        }
+
+        makeBoard();
+        
+        //0.1초마다 화면을 그려줌
+        setInterval(function() {
+            $(".pixel").removeClass("worm head");
+            
+            makeWorm();
+            gameover();
+            moveWorm();
+            
+        }, 100);
+        
+        
+        $(document).on("keydown", function(ev) {
+            //left
+            if( worm.direction != "right" && ev.keyCode == 37 ) worm.direction = "left";
+            //up
+            if( worm.direction != "down" &&  ev.keyCode == 38 ) worm.direction = "up";
+            //right
+            if( worm.direction != "left" &&  ev.keyCode == 39 ) worm.direction = "right";
+            //down
+            if ( worm.direction != "up" &&  ev.keyCode == 40 ) worm.direction = "down";
+        })
+        
+        
+        function makeBoard() {
+            for (i = 0; i < boardSize; i++) {
+                $("#board").append("<div class='row'></div>");
+                for (j = 0; j < boardSize; j++) {
+                    $(".row:last-child").append("<div class='pixel'></div>");
+                }
+            }
+
+            makeFood();
+            makeFood();
+            
+        }
+        
+        function makeWorm() {
+            var head = worm.position[0];
+            
+            //머리에 class 붙여줌
+            $(".row:nth-child(" + head[0] + ") > .pixel:nth-child(" + head[1] + ")").addClass("worm head");
+            
+            //몸통에 class 붙여줌
+            for (var i = 0; i < worm.size; i++) {
+                $(".row:nth-child(" + worm.position[i][0] + ") > .pixel:nth-child(" + worm.position[i][1] + ")").addClass("worm");
+            }
+        }
+        
+        function moveWorm(){
+            
+            if(worm.direction == "left"){
+                var head = [worm.position[0][0], worm.position[0][1]-1];
+                worm.position.unshift(head);
+                worm.position.pop();
+
+                for(var i=0;i<worm.size;i++){
+                    if(worm.position[i][1]<=0) worm.position[i][1] = boardSize;
+                }
+            }
+
+
+            if(worm.direction == "up"){
+                var head = [worm.position[0][0]-1, worm.position[0][1]];
+                worm.position.unshift(head);
+                worm.position.pop();
+
+                for(var i=0;i<worm.size;i++){
+                    if(worm.position[i][0]<=0) worm.position[i][0] = boardSize;
+                }
+            }
+
+
+            if(worm.direction == "right"){
+                var head = [worm.position[0][0], worm.position[0][1]+1];
+                worm.position.unshift(head);
+                worm.position.pop();
+
+                for(var i=0;i<worm.size;i++){
+                    if(worm.position[i][1]>boardSize) worm.position[i][1] = 1;
+                }
+            }
+            
+            
+            if(worm.direction == "down"){
+                var head = [worm.position[0][0]+1, worm.position[0][1]];
+                worm.position.unshift(head);
+                worm.position.pop();
+
+                for(var i=0;i<worm.size;i++){
+                    if(worm.position[i][0]>boardSize) worm.position[i][0] = 1;
+                }
+            }
+            eatFood();
+        }
+        
+        function eatFood(){
+            var head = $(".row:nth-child(" + worm.position[0][0] + ") > .pixel:nth-child(" + worm.position[0][1] + ")");
+            var lastTail = worm.position[worm.position.length-1];
+            
+            //pixel이 빈칸이 아니면 써있는 글자만큼 꼬리 증가
+            if(head.text() != ""){
+                var num = parseInt(head.text());
+                
+                worm.size += num;
+                
+                for(var i=0; i<num; i++){
+                    worm.position.push([lastTail[0],lastTail[1]]);
+                }
+                
+                head.text("");
+                makeFood();
+            }
+        }
+        
+        function makeFood(){
+            var x = parseInt(Math.random()*boardSize+1);
+            var y = parseInt(Math.random()*boardSize+1);
+            
+            food.position[0] = [x, y];
+            food.size = parseInt(Math.random()*10+1);
+            
+            $(".row:nth-child(" + food.position[0][0] + ") > .pixel:nth-child(" + food.position[0][1] + ")").html(food.size).css("font-size","10px");
+            
+        }
+        
+        //머리가 몸체와 닿을 시 게임오버
+        function gameover(){
+            for(var i=1; i<worm.size; i++){
+                if(worm.position[0][0] == worm.position[i][0] && worm.position[0][1] == worm.position[i][1]) {
+                    
+                    alert("GAME OVER!!");
+                }
+            }
+        }
+        
+        
+    </script>
+</body>
+</html>
